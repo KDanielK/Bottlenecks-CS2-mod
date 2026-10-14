@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <!-- Warning badge: a train that has been blocked for a long time -->
+  <circle cx="128" cy="128" r="118" fill="#ffffff"/>
+  <circle cx="128" cy="128" r="106" fill="#f29d1f"/>
+  <!-- Train front -->
+  <rect x="78" y="56" width="100" height="118" rx="26" fill="#ffffff"/>
+  <rect x="92" y="72" width="72" height="40" rx="8" fill="#f29d1f"/>
+  <circle cx="102" cy="142" r="10" fill="#f29d1f"/>
+  <circle cx="154" cy="142" r="10" fill="#f29d1f"/>
+  <path d="M96 174 L76 204 M160 174 L180 204" stroke="#ffffff" stroke-width="12" stroke-linecap="round"/>
+  <!-- Pause bars: the train is held -->
+  <rect x="112" y="186" width="10" height="26" rx="3" fill="#ffffff"/>
+  <rect x="134" y="186" width="10" height="26" rx="3" fill="#ffffff"/>
+</svg>

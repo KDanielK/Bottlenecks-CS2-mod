@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <!-- Info badge (green): a train queuing for a busy station platform, which is fine -->
+  <circle cx="128" cy="128" r="118" fill="#ffffff"/>
+  <circle cx="128" cy="128" r="106" fill="#3aa655"/>
+  <!-- Train front -->
+  <rect x="78" y="56" width="100" height="118" rx="26" fill="#ffffff"/>
+  <rect x="92" y="72" width="72" height="40" rx="8" fill="#3aa655"/>
+  <circle cx="102" cy="142" r="10" fill="#3aa655"/>
+  <circle cx="154" cy="142" r="10" fill="#3aa655"/>
+  <path d="M96 174 L76 204 M160 174 L180 204" stroke="#ffffff" stroke-width="12" stroke-linecap="round"/>
+  <!-- Dots: waiting in line -->
+  <circle cx="108" cy="199" r="7" fill="#ffffff"/>
+  <circle cx="128" cy="199" r="7" fill="#ffffff"/>
+  <circle cx="148" cy="199" r="7" fill="#ffffff"/>
+</svg>

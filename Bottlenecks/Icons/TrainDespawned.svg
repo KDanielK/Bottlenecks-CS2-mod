@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <!-- Problem badge: a stuck train was despawned at this spot -->
+  <circle cx="128" cy="128" r="118" fill="#ffffff"/>
+  <circle cx="128" cy="128" r="106" fill="#d93a32"/>
+  <!-- Train front -->
+  <rect x="78" y="56" width="100" height="118" rx="26" fill="#ffffff"/>
+  <rect x="92" y="72" width="72" height="40" rx="8" fill="#d93a32"/>
+  <circle cx="102" cy="142" r="10" fill="#d93a32"/>
+  <circle cx="154" cy="142" r="10" fill="#d93a32"/>
+  <path d="M96 174 L76 204 M160 174 L180 204" stroke="#ffffff" stroke-width="12" stroke-linecap="round"/>
+  <!-- Cross: the train was removed -->
+  <path d="M110 184 L146 216 M146 184 L110 216" stroke="#ffffff" stroke-width="12" stroke-linecap="round"/>
+</svg>

@@ -86,7 +86,7 @@ Find them under **Options - Bottlenecks**.
 	<!--Link to the forum post where the mod can be discussed-->
 	<ForumLink Value="" />
 	<!--Version of the mod-->
-	<ModVersion Value="1.0.0" />
+	<ModVersion Value="1.0.1" />
 	<!--Recommended version of the base game to use the mod-->
 	<GameVersion Value="1.6.*" />
 	<!--Dependency for the mod, can be set multiple times-->
@@ -95,14 +95,8 @@ Find them under **Options - Bottlenecks**.
 	<RequiredDLC Value="" />
 	<!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
 	<ChangeLog>
-First release.
-
-- Icons for queuing (green), blocked (orange) and deadlocked (red) trains.
-- Cargo station overload icons: blue (not selling), orange (overloaded) and red (backlogged), with hover text.
-- Deadlocked trains are held on the track instead of being despawned (can be turned off).
-- Optional pause when a deadlock is detected.
-- Notification card with click-to-jump to the deadlock or a backlogged cargo station.
-- "Reset cargo transfers" action under Options to clear a cargo backlog and get the post service running again (save first).	</ChangeLog>
+- Removed debug files from the mod package. No gameplay changes.
+	</ChangeLog>
 	<!--External link, can be set multiple times. supported types are "discord", "github", "youtube", "twitch", "x", "paypal", "patreon", "buymeacoffee", "kofi", "crowdin", "gitlab", "gofundme"-->
 	<ExternalLink Type="" Url="" />
 	<!--Supported values Public, Private, Unlisted-->

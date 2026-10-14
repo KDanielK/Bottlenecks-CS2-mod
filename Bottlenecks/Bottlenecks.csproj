@@ -11,6 +11,20 @@
 	<Import Project="$([System.Environment]::GetEnvironmentVariable('CSII_TOOLPATH', 'EnvironmentVariableTarget.User'))\Mod.props" />
 	<Import Project="$([System.Environment]::GetEnvironmentVariable('CSII_TOOLPATH', 'EnvironmentVariableTarget.User'))\Mod.targets" />
 
+	<PropertyGroup>
+		<!--Do not embed the (private) GitHub repository URL in the debug info-->
+		<EnableSourceLink>false</EnableSourceLink>
+	</PropertyGroup>
+
+	<!--Debug files are only for local debugging: keep them in bin, but never deploy/publish them.
+	They contain local build paths (Windows user name).-->
+	<Target Name="RemoveDebugFilesFromDeploy" AfterTargets="DeployWIP">
+		<ItemGroup>
+			<DeployedDebugFiles Include="$(DeployDir)\**\*.pdb" />
+		</ItemGroup>
+		<Delete Files="@(DeployedDebugFiles)" />
+	</Target>
+
 	<ItemGroup>
 		<Reference Include="Game">
 			<Private>false</Private>

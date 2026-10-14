@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="950" height="500" viewBox="0 0 950 500">
+  <!-- Paradox Mods thumbnail: rendered to Thumbnail.png -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1d2b3a"/>
+      <stop offset="1" stop-color="#0f1822"/>
+    </linearGradient>
+    <!-- Shared train badge; colour comes from the use element's fill via currentColor -->
+    <g id="train">
+      <circle cx="128" cy="128" r="118" fill="#ffffff"/>
+      <circle cx="128" cy="128" r="106" fill="currentColor"/>
+      <rect x="78" y="56" width="100" height="118" rx="26" fill="#ffffff"/>
+      <rect x="92" y="72" width="72" height="40" rx="8" fill="currentColor"/>
+      <circle cx="102" cy="142" r="10" fill="currentColor"/>
+      <circle cx="154" cy="142" r="10" fill="currentColor"/>
+      <path d="M96 174 L76 204 M160 174 L180 204" stroke="#ffffff" stroke-width="12" stroke-linecap="round"/>
+    </g>
+  </defs>
+  <rect width="950" height="500" fill="url(#bg)"/>
+
+  <!-- Rail track running across the bottom -->
+  <g stroke="#3b4f63" stroke-width="6">
+    <line x1="0" y1="430" x2="950" y2="430"/>
+    <line x1="0" y1="462" x2="950" y2="462"/>
+  </g>
+  <g stroke="#3b4f63" stroke-width="10">
+    <line x1="25" y1="420" x2="25" y2="472"/><line x1="85" y1="420" x2="85" y2="472"/>
+    <line x1="145" y1="420" x2="145" y2="472"/><line x1="205" y1="420" x2="205" y2="472"/>
+    <line x1="265" y1="420" x2="265" y2="472"/><line x1="325" y1="420" x2="325" y2="472"/>
+    <line x1="385" y1="420" x2="385" y2="472"/><line x1="445" y1="420" x2="445" y2="472"/>
+    <line x1="505" y1="420" x2="505" y2="472"/><line x1="565" y1="420" x2="565" y2="472"/>
+    <line x1="625" y1="420" x2="625" y2="472"/><line x1="685" y1="420" x2="685" y2="472"/>
+    <line x1="745" y1="420" x2="745" y2="472"/><line x1="805" y1="420" x2="805" y2="472"/>
+    <line x1="865" y1="420" x2="865" y2="472"/><line x1="925" y1="420" x2="925" y2="472"/>
+  </g>
+
+  <!-- Title -->
+  <text x="475" y="118" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="78" font-weight="700" fill="#ffffff">Bottlenecks</text>
+  <text x="475" y="168" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="30" fill="#a9bccf">Find and fix train deadlocks before trains vanish</text>
+
+  <!-- The three states: queue (fine), blocked (warning), deadlock (problem) -->
+  <g transform="translate(155 205) scale(0.62)" color="#3aa655"><use xlink:href="#train"/>
+    <circle cx="108" cy="199" r="7" fill="#ffffff"/><circle cx="128" cy="199" r="7" fill="#ffffff"/><circle cx="148" cy="199" r="7" fill="#ffffff"/></g>
+  <g transform="translate(395 205) scale(0.62)" color="#f29d1f"><use xlink:href="#train"/>
+    <rect x="112" y="186" width="10" height="26" rx="3" fill="#ffffff"/><rect x="134" y="186" width="10" height="26" rx="3" fill="#ffffff"/></g>
+  <g transform="translate(635 205) scale(0.62)" color="#d93a32"><use xlink:href="#train"/>
+    <path d="M110 184 L146 216 M146 184 L110 216" stroke="#ffffff" stroke-width="12" stroke-linecap="round"/></g>
+
+  <g font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="600" text-anchor="middle">
+    <text x="234" y="395" fill="#7fd494">Queue</text>
+    <text x="474" y="395" fill="#f7bd63">Blocked</text>
+    <text x="714" y="395" fill="#f08a83">Deadlock</text>
+  </g>
+</svg>

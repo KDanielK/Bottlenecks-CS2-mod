@@ -1,3 +1,4 @@
+using System.Text;
 using Game.Common;
 using Game.Notifications;
 using Game.Prefabs;
@@ -12,31 +13,56 @@ namespace Bottlenecks.Systems
 		private const string kTrainBlockedName = "Bottlenecks.TrainBlocked";
 		private const string kTrainQueuedName = "Bottlenecks.TrainQueued";
 		private const string kTrainDespawnedName = "Bottlenecks.TrainDespawned";
+		private const string kCargoNotSellingName = "Bottlenecks.CargoNotSelling";
+		private const string kCargoOverloadedName = "Bottlenecks.CargoOverloaded";
+		private const string kCargoBackloggedName = "Bottlenecks.CargoBacklogged";
 
 		private const string kTrainBlockedResource = "Bottlenecks.Icons.TrainBlocked.png";
 		private const string kTrainQueuedResource = "Bottlenecks.Icons.TrainQueued.png";
 		private const string kTrainDespawnedResource = "Bottlenecks.Icons.TrainDespawned.png";
+		private const string kCargoNotSellingResource = "Bottlenecks.Icons.CargoNotSelling.png";
+		private const string kCargoOverloadedResource = "Bottlenecks.Icons.CargoOverloaded.png";
+		private const string kCargoBackloggedResource = "Bottlenecks.Icons.CargoBacklogged.png";
 
 		private const int kMaxInitAttempts = 600;
+
+		private const int kTrainBlocked = 0;
+		private const int kTrainQueued = 1;
+		private const int kTrainDespawned = 2;
+		private const int kCargoNotSelling = 3;
+		private const int kCargoOverloaded = 4;
+		private const int kCargoBacklogged = 5;
+
+		private struct IconDef
+		{
+			public string Name;
+			public string Resource;
+			public Entity Own;
+			public Entity Resolved;
+		}
+
+		private static readonly IconDef[] s_Icons = new IconDef[]
+		{
+			new IconDef { Name = kTrainBlockedName, Resource = kTrainBlockedResource },
+			new IconDef { Name = kTrainQueuedName, Resource = kTrainQueuedResource },
+			new IconDef { Name = kTrainDespawnedName, Resource = kTrainDespawnedResource },
+			new IconDef { Name = kCargoNotSellingName, Resource = kCargoNotSellingResource },
+			new IconDef { Name = kCargoOverloadedName, Resource = kCargoOverloadedResource },
+			new IconDef { Name = kCargoBackloggedName, Resource = kCargoBackloggedResource },
+		};
 
 		private static bool s_Ready;
 		private static int s_InitAttempts;
 		private static bool s_CleanupPending;
-
-		// Our own prefabs, created at most once per game session.
 		private static bool s_OwnCreated;
-		private static Entity s_OwnTrainBlocked;
-		private static Entity s_OwnTrainQueued;
-		private static Entity s_OwnTrainDespawned;
-
-		private static Entity s_TrainBlocked;
-		private static Entity s_TrainQueued;
-		private static Entity s_TrainDespawned;
 
 		public static bool IsReady => s_Ready;
-		public static Entity TrainBlocked => s_TrainBlocked;
-		public static Entity TrainQueued => s_TrainQueued;
-		public static Entity TrainDespawned => s_TrainDespawned;
+		public static Entity TrainBlocked => s_Icons[kTrainBlocked].Resolved;
+		public static Entity TrainQueued => s_Icons[kTrainQueued].Resolved;
+		public static Entity TrainDespawned => s_Icons[kTrainDespawned].Resolved;
+		public static Entity CargoNotSelling => s_Icons[kCargoNotSelling].Resolved;
+		public static Entity CargoOverloaded => s_Icons[kCargoOverloaded].Resolved;
+		public static Entity CargoBacklogged => s_Icons[kCargoBacklogged].Resolved;
 
 		public static void OnGameLoadingComplete()
 		{
@@ -66,9 +92,11 @@ namespace Bottlenecks.Systems
 			IconConfigurationPrefab iconConfig = prefabSystem.GetPrefab<IconConfigurationPrefab>(iconConfigEntity);
 			Texture2D reference = iconConfig != null ? iconConfig.m_MissingIcon : null;
 
-			s_OwnTrainBlocked = CreateIconPrefab(prefabSystem, kTrainBlockedName, kTrainBlockedResource, reference);
-			s_OwnTrainQueued = CreateIconPrefab(prefabSystem, kTrainQueuedName, kTrainQueuedResource, reference);
-			s_OwnTrainDespawned = CreateIconPrefab(prefabSystem, kTrainDespawnedName, kTrainDespawnedResource, reference);
+			for (int i = 0; i < s_Icons.Length; i++)
+			{
+				s_Icons[i].Own = CreateIconPrefab(prefabSystem, s_Icons[i].Name, s_Icons[i].Resource, reference);
+			}
+
 			s_OwnCreated = true;
 			return true;
 		}
@@ -77,26 +105,10 @@ namespace Bottlenecks.Systems
 		{
 			// Guard against our prefab entities becoming invalid after initialization: issuing icon
 			// commands for an invalid prefab would crash the game natively during command playback.
-			if (s_Ready && ((s_OwnTrainBlocked != Entity.Null && !IsInitialized(world, s_OwnTrainBlocked))
-				|| (s_OwnTrainQueued != Entity.Null && !IsInitialized(world, s_OwnTrainQueued))
-				|| (s_OwnTrainDespawned != Entity.Null && !IsInitialized(world, s_OwnTrainDespawned))))
+			if (s_Ready && HasInvalidOwnPrefab(world))
 			{
 				Mod.log.Warn("BottleneckIconPrefabs: own icon prefab became invalid, switching to the vanilla fallback icon.");
-				if (!IsInitialized(world, s_OwnTrainBlocked))
-				{
-					s_OwnTrainBlocked = Entity.Null;
-				}
-
-				if (!IsInitialized(world, s_OwnTrainQueued))
-				{
-					s_OwnTrainQueued = Entity.Null;
-				}
-
-				if (!IsInitialized(world, s_OwnTrainDespawned))
-				{
-					s_OwnTrainDespawned = Entity.Null;
-				}
-
+				NullInvalidOwnPrefabs(world);
 				s_Ready = false;
 			}
 
@@ -113,35 +125,29 @@ namespace Bottlenecks.Systems
 				// PrefabInitializeSystem runs LateInitialize, which builds the icon archetype. Creating an
 				// icon from a prefab without a valid archetype crashes the game natively, so wait for
 				// initialization and fall back to a vanilla icon if it never happens.
-				bool blockedValid = IsInitialized(world, s_OwnTrainBlocked);
-				bool queuedValid = IsInitialized(world, s_OwnTrainQueued);
-				bool despawnedValid = IsInitialized(world, s_OwnTrainDespawned);
-				if ((!blockedValid && s_OwnTrainBlocked != Entity.Null) || (!queuedValid && s_OwnTrainQueued != Entity.Null) || (!despawnedValid && s_OwnTrainDespawned != Entity.Null))
+				bool allValid = true;
+				for (int i = 0; i < s_Icons.Length; i++)
+				{
+					if (s_Icons[i].Own != Entity.Null && !IsInitialized(world, s_Icons[i].Own))
+					{
+						allValid = false;
+						break;
+					}
+				}
+
+				if (!allValid)
 				{
 					if (++s_InitAttempts < kMaxInitAttempts)
 					{
 						return false;
 					}
 
-					Mod.log.Warn($"BottleneckIconPrefabs: icon prefabs were not initialized by the game after {s_InitAttempts} attempts (TrainBlocked={blockedValid}, TrainQueued={queuedValid}, TrainDespawned={despawnedValid}).");
-					if (!blockedValid)
-					{
-						s_OwnTrainBlocked = Entity.Null;
-					}
-
-					if (!queuedValid)
-					{
-						s_OwnTrainQueued = Entity.Null;
-					}
-
-					if (!despawnedValid)
-					{
-						s_OwnTrainDespawned = Entity.Null;
-					}
+					Mod.log.Warn($"BottleneckIconPrefabs: icon prefabs were not initialized by the game after {s_InitAttempts} attempts ({DescribeInitStatus(world)}).");
+					NullInvalidOwnPrefabs(world);
 				}
 
 				Entity fallback = Entity.Null;
-				if (s_OwnTrainBlocked == Entity.Null || s_OwnTrainQueued == Entity.Null || s_OwnTrainDespawned == Entity.Null)
+				if (AnyOwnPrefabNull())
 				{
 					fallback = GetFallbackPrefab(world);
 					if (fallback == Entity.Null)
@@ -153,11 +159,13 @@ namespace Bottlenecks.Systems
 					Mod.log.Warn("BottleneckIconPrefabs: using the vanilla traffic accident icon for the icons that could not be created.");
 				}
 
-				s_TrainBlocked = s_OwnTrainBlocked != Entity.Null ? s_OwnTrainBlocked : fallback;
-				s_TrainQueued = s_OwnTrainQueued != Entity.Null ? s_OwnTrainQueued : fallback;
-				s_TrainDespawned = s_OwnTrainDespawned != Entity.Null ? s_OwnTrainDespawned : fallback;
+				for (int i = 0; i < s_Icons.Length; i++)
+				{
+					s_Icons[i].Resolved = s_Icons[i].Own != Entity.Null ? s_Icons[i].Own : fallback;
+				}
+
 				s_Ready = true;
-				Mod.log.Info($"BottleneckIconPrefabs: ready after {s_InitAttempts} wait(s) (own TrainBlocked={s_OwnTrainBlocked != Entity.Null}, own TrainQueued={s_OwnTrainQueued != Entity.Null}, own TrainDespawned={s_OwnTrainDespawned != Entity.Null}).");
+				Mod.log.Info($"BottleneckIconPrefabs: ready after {s_InitAttempts} wait(s) ({DescribeOwnStatus()}).");
 			}
 
 			if (s_CleanupPending)
@@ -173,7 +181,7 @@ namespace Bottlenecks.Systems
 		// systems can rebuild their state from scratch. Never touches vanilla (fallback) icons.
 		private static void RemoveLeftoverIcons(World world)
 		{
-			if (s_OwnTrainBlocked == Entity.Null && s_OwnTrainQueued == Entity.Null && s_OwnTrainDespawned == Entity.Null)
+			if (!AnyOwnPrefabCreated())
 			{
 				return;
 			}
@@ -194,7 +202,7 @@ namespace Bottlenecks.Systems
 				for (int i = 0; i < owners.Length; i++)
 				{
 					Entity prefab = refs[i].m_Prefab;
-					if (prefab != Entity.Null && (prefab == s_OwnTrainBlocked || prefab == s_OwnTrainQueued || prefab == s_OwnTrainDespawned))
+					if (prefab != Entity.Null && IsOwnPrefab(prefab))
 					{
 						cmd.Remove(owners[i].m_Owner, prefab);
 						removed++;
@@ -263,6 +271,101 @@ namespace Bottlenecks.Systems
 			}
 
 			return entity;
+		}
+
+		private static bool HasInvalidOwnPrefab(World world)
+		{
+			for (int i = 0; i < s_Icons.Length; i++)
+			{
+				if (s_Icons[i].Own != Entity.Null && !IsInitialized(world, s_Icons[i].Own))
+				{
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		private static void NullInvalidOwnPrefabs(World world)
+		{
+			for (int i = 0; i < s_Icons.Length; i++)
+			{
+				if (s_Icons[i].Own != Entity.Null && !IsInitialized(world, s_Icons[i].Own))
+				{
+					s_Icons[i].Own = Entity.Null;
+				}
+			}
+		}
+
+		private static bool AnyOwnPrefabNull()
+		{
+			for (int i = 0; i < s_Icons.Length; i++)
+			{
+				if (s_Icons[i].Own == Entity.Null)
+				{
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		private static bool AnyOwnPrefabCreated()
+		{
+			for (int i = 0; i < s_Icons.Length; i++)
+			{
+				if (s_Icons[i].Own != Entity.Null)
+				{
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		private static bool IsOwnPrefab(Entity prefab)
+		{
+			for (int i = 0; i < s_Icons.Length; i++)
+			{
+				if (s_Icons[i].Own != Entity.Null && prefab == s_Icons[i].Own)
+				{
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		private static string DescribeInitStatus(World world)
+		{
+			StringBuilder sb = new StringBuilder();
+			for (int i = 0; i < s_Icons.Length; i++)
+			{
+				if (i > 0)
+				{
+					sb.Append(", ");
+				}
+
+				sb.Append(s_Icons[i].Name).Append('=').Append(IsInitialized(world, s_Icons[i].Own));
+			}
+
+			return sb.ToString();
+		}
+
+		private static string DescribeOwnStatus()
+		{
+			StringBuilder sb = new StringBuilder();
+			for (int i = 0; i < s_Icons.Length; i++)
+			{
+				if (i > 0)
+				{
+					sb.Append(", ");
+				}
+
+				sb.Append("own ").Append(s_Icons[i].Name).Append('=').Append(s_Icons[i].Own != Entity.Null);
+			}
+
+			return sb.ToString();
 		}
 	}
 }

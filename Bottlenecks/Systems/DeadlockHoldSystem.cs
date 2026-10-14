@@ -15,7 +15,11 @@ namespace Bottlenecks.Systems
 {
 	public partial class DeadlockHoldSystem : GameSystemBase
 	{
+		// 30 s at 1x: a held train must stay free this long before it is released.
+		private const uint kReleaseAfterFrames = 1800;
+
 		private EntityQuery m_Query;
+		private Game.Simulation.SimulationSystem m_SimulationSystem;
 
 		public DeadlockHoldSystem()
 		{
@@ -26,6 +30,7 @@ namespace Bottlenecks.Systems
 		{
 			base.OnCreate();
 
+			m_SimulationSystem = World.GetOrCreateSystemManaged<Game.Simulation.SimulationSystem>();
 			m_Query = GetEntityQuery(
 				ComponentType.ReadOnly<Train>(),
 				ComponentType.ReadOnly<PathOwner>(),
@@ -88,7 +93,7 @@ namespace Bottlenecks.Systems
 			pathOwners.Dispose();
 			transforms.Dispose();
 
-			DropResolved();
+			DropResolved(m_SimulationSystem.frameIndex);
 
 			if (newlyHeld > 0)
 			{
@@ -96,7 +101,7 @@ namespace Bottlenecks.Systems
 			}
 		}
 
-		private void DropResolved()
+		private void DropResolved(uint frame)
 		{
 			if (DeadlockRegistry.Held.Count == 0)
 			{
@@ -122,12 +127,23 @@ namespace Bottlenecks.Systems
 					Blocker blocker = EntityManager.GetComponentData<Blocker>(entity);
 					if (blocker.m_Blocker == Entity.Null || blocker.m_MaxSpeed >= 6)
 					{
-						if (toDrop == null)
+						if (!DeadlockRegistry.FreeSince.TryGetValue(entity, out uint since))
 						{
-							toDrop = new List<Entity>();
+							DeadlockRegistry.FreeSince[entity] = frame;
 						}
+						else if (frame - since >= kReleaseAfterFrames)
+						{
+							if (toDrop == null)
+							{
+								toDrop = new List<Entity>();
+							}
 
-						toDrop.Add(entity);
+							toDrop.Add(entity);
+						}
+					}
+					else
+					{
+						DeadlockRegistry.FreeSince.Remove(entity);
 					}
 				}
 			}
@@ -137,6 +153,7 @@ namespace Bottlenecks.Systems
 				foreach (Entity entity in toDrop)
 				{
 					DeadlockRegistry.Held.Remove(entity);
+					DeadlockRegistry.FreeSince.Remove(entity);
 				}
 			}
 		}

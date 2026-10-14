@@ -4,33 +4,75 @@
 	<!--Name of the mod to display to players-->
 	<DisplayName Value="Bottlenecks" />
 	<!--Short description of the mod-->
-	<ShortDescription Value="Warns about blocked trains and marks where the game despawns stuck trains, so you can fix the rail layout." />
+	<ShortDescription Value="Find deadlocked trains and manage despawning, spot overloaded cargo stations, and get a jammed supply chain and post service running again." />
 	<!--Long description of the mod. Single line or multi line. Supports minimal markdown subset-->
 	<!--LongDescription Value="This is a long description" /-->
 	<LongDescription>
 # Bottlenecks
 
-Cities: Skylines II silently despawns trains that end up in a deadlock (trains blocking each other). There is no warning, so it is hard to find the rail layout problem. Bottlenecks shows where it happens so you can fix the layout.
+Cities: Skylines II hides some of its worst logistics problems. Trains that block each other are quietly removed. Cargo stations can build up enormous backlogs that stall your supply chain, and even take your post service down with them. There is no warning; things just stop working.
 
-## Features (v1)
+**Bottlenecks makes these problems visible and helps you fix them.** It finds deadlocked trains and lets you decide what happens next: hold them on the track while you repair the layout, pause the game the moment a deadlock forms, or let the game despawn them and mark the spot. It also flags overloaded cargo stations and can clear a jammed cargo network with one click.
 
-- Orange train icon above a train that has been held at a signal, junction or crossing at very low speed for about 45 seconds of game time. Not shown while boarding at a station or when just following another train. Disappears when the train moves again.
-- Red train icon at the spot where the game despawned a stuck train. Stays for a few minutes so you can find the pinch point.
-- Hold deadlocked trains (on by default): trains that end up in a deadlock are frozen in place with a red icon instead of being silently despawned, so you can see and fix the rail layout. Remove them yourself or fix the layout to free them.
-- Optional pause: automatically pause the game when a new train deadlock is detected.
-- Notification cards: a notification appears when a train deadlock is detected; click it to move the camera there.
+## Why it matters
 
-## Notes
+Every despawned train costs your city something, without the game telling you:
 
-- By default the mod prevents deadlocked trains from being despawned (they are held in place). This can be turned off in Options.
-- The mod otherwise only observes and shows icons.
-- Icons from a previous session are cleaned up when a save is loaded.
-- Safe to remove: the icons are inert without the mod.
+- **Cargo is destroyed.** The goods on a despawned cargo train are lost. The sender has already shipped them, the receiver never gets them, and they have to be ordered and shipped again. Deliveries arrive late.
+- **Passengers are stranded.** People on a despawned passenger train are put out where the train disappeared, often between stations, and have to continue their trip from there.
+- **Your lines run short.** The line loses a vehicle and has to order a replacement from the depot. Until it arrives, waiting times on that line go up.
+- **It happens silently.** The game shows no warning and keeps no statistic for despawned trains, so a bad junction can keep costing you without you noticing.
 
-## Planned
+## Get your supply chain and post running again
 
-- Settings for timings.
-- More vehicle types (later).
+Cargo stations, harbors and cargo airports move goods on to their customers with their own trucks, in strict order. After a traffic jam, that queue can grow to tens of thousands of trips, and it may never recover by itself. While it is backlogged:
+
+- **Companies stop buying from the station** and import from outside instead, even when the station is full of the goods they need.
+- **Stock piles up** far beyond the station's capacity, because nothing can be trucked onwards.
+- **Your post service stops.** Mail to and from the outside world is routed through cargo stations. When those are jammed, post offices fill up with unsorted mail, receive nothing to deliver, and their vans stay parked, while your sorting facilities sit idle.
+
+The cargo station icons show this as it builds up, and **Reset cargo transfers** clears it. In our test city a single reset cleared over 370,000 queued truck trips. The post service was running normally again about 15 minutes later, companies bought from the stations again, more cargo moved by rail, and the game ran noticeably smoother.
+
+## What you will see
+
+- **Green icon - queue.** A train has been waiting more than about 90 seconds for a busy station platform. Usually fine, but a sign the station is close to capacity.
+- **Orange icon - blocked.** A train has been held at a signal, junction or crossing for more than about 45 seconds and is not just waiting for a platform. Often the first sign of a layout problem.
+- **Red icon - deadlock.** Trains are blocking each other and none of them can move. With holding enabled, they stay in place with this icon until you fix the track.
+- **Blue icon - cargo not selling.** A cargo station, harbor or cargo airport has had 10 or more truck trips queued for a while, so companies buy elsewhere (often by importing). Not critical and common at busy stations. Hover the icon for the details.
+- **Orange icon - cargo overloaded.** A cargo station, harbor or cargo airport whose truck queue is several rounds long and falling behind. Hover the icon for the details.
+- **Red icon - cargo backlogged.** A cargo station, harbor or cargo airport with a runaway truck backlog that stops selling and delays mail to and from the outside. Hover the icon to see how to clear it.
+- **Notification card.** A card appears when a deadlock is detected or a cargo station becomes backlogged. Click it to move the camera straight to the spot.
+
+Icons follow the train and disappear by themselves once it moves again. Cargo icons stay on the station until its truck queue clears.
+
+## Settings
+
+Find them under **Options - Bottlenecks**.
+
+- **Hold deadlocked trains** (on by default)
+  - Deadlocked trains are kept on the track instead of being despawned.
+  - Fix the layout, or remove a train yourself, to clear the deadlock.
+  - Turn it off to get the vanilla behaviour back. A red marker then shows where trains were despawned, for a few minutes.
+- **Pause on deadlock** (off by default)
+  - Pauses the game the moment a new deadlock is detected.
+- **Show notifications** (on by default)
+  - Shows the notification card with click-to-jump.
+- **Show cargo station icons** (on by default)
+  - Shows a blue, orange or red icon on a cargo station, harbor or cargo airport whose truck queue is too long.
+  - Hover the icon to read what each colour means.
+- **Reset cargo transfers**
+  - Clears the queued truck trips at all cargo stations, harbors and cargo airports, and the pending transfer requests at all storage buildings.
+  - Storage buildings then plan new transfers from their actual stock, and the post service can recover.
+  - Meant for a runaway backlog (red icon). Blue and orange stations recover by themselves or by improving roads, rail and trucks; do not reset for those.
+  - Fix the cause first (for example a traffic jam), or the backlog will build up again.
+  - Save first: goods in queued trips are lost. Vehicles already on the road continue.
+
+## Good to know
+
+- Works for trains, cargo trains, trams and subways. They all share the same rail simulation. Testing so far has mainly been done with trains.
+- With holding enabled, a deadlock does not clear by itself. Trains behind it will queue until you fix the track.
+- The mod does not change signals, routes or pathfinding. Apart from holding deadlocked trains and the reset you start yourself, it only observes and shows icons.
+- Safe to add to or remove from an existing save.
 	</LongDescription>
 	<!--Thumbnail-->
 	<Thumbnail Value="Properties/Thumbnail.png" />
@@ -41,17 +83,23 @@ Cities: Skylines II silently despawns trains that end up in a deadlock (trains b
 	<!--Link to the forum post where the mod can be discussed-->
 	<ForumLink Value="" />
 	<!--Version of the mod-->
-	<ModVersion Value="1.0" />
+	<ModVersion Value="1.0.0" />
 	<!--Recommended version of the base game to use the mod-->
-	<GameVersion Value="1.0.*" />
+	<GameVersion Value="1.6.*" />
 	<!--Dependency for the mod, can be set multiple times-->
 	<Dependency Id="" />
 	<!--Required DLC, can be set multiple times. Supported values are "Landmark Buildings", "San Fransisco Set", "Beach Properties", "Urban Promenades", "Modern Architecture"-->
 	<RequiredDLC Value="" />
 	<!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
-	<ChangeLog Value="Initial release: blocked-train warnings and despawn markers for trains." />
-	<!--<ChangeLog>
-	</ChangeLog>-->
+	<ChangeLog>
+First release.
+
+- Icons for queuing (green), blocked (orange) and deadlocked (red) trains.
+- Cargo station overload icons: blue (not selling), orange (overloaded) and red (backlogged), with hover text.
+- Deadlocked trains are held on the track instead of being despawned (can be turned off).
+- Optional pause when a deadlock is detected.
+- Notification card with click-to-jump to the deadlock or a backlogged cargo station.
+- "Reset cargo transfers" action under Options to clear a cargo backlog and get the post service running again (save first).	</ChangeLog>
 	<!--External link, can be set multiple times. supported types are "discord", "github", "youtube", "twitch", "x", "paypal", "patreon", "buymeacoffee", "kofi", "crowdin", "gitlab", "gofundme"-->
 	<ExternalLink Type="" Url="" />
 	<!--Supported values Public, Private, Unlisted-->

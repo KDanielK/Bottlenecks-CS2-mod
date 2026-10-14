@@ -77,6 +77,15 @@
 		<EmbeddedResource Include="Icons\TrainDespawned.png">
 			<LogicalName>Bottlenecks.Icons.TrainDespawned.png</LogicalName>
 		</EmbeddedResource>
+		<EmbeddedResource Include="Icons\CargoNotSelling.png">
+			<LogicalName>Bottlenecks.Icons.CargoNotSelling.png</LogicalName>
+		</EmbeddedResource>
+		<EmbeddedResource Include="Icons\CargoOverloaded.png">
+			<LogicalName>Bottlenecks.Icons.CargoOverloaded.png</LogicalName>
+		</EmbeddedResource>
+		<EmbeddedResource Include="Icons\CargoBacklogged.png">
+			<LogicalName>Bottlenecks.Icons.CargoBacklogged.png</LogicalName>
+		</EmbeddedResource>
 		<None Remove="Icons\*.svg" />
 	</ItemGroup>
 

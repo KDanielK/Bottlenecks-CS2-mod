@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <!-- Info badge (blue): cargo station queue is too long to sell to companies -->
+  <circle cx="128" cy="128" r="118" fill="#ffffff"/>
+  <circle cx="128" cy="128" r="106" fill="#2f80c8"/>
+  <!-- Shipping container -->
+  <rect x="58" y="78" width="140" height="84" rx="8" fill="#ffffff"/>
+  <g stroke="#2f80c8" stroke-width="8" stroke-linecap="round">
+    <line x1="84" y1="92" x2="84" y2="148"/>
+    <line x1="110" y1="92" x2="110" y2="148"/>
+    <line x1="136" y1="92" x2="136" y2="148"/>
+    <line x1="162" y1="92" x2="162" y2="148"/>
+  </g>
+  <!-- Queue: waiting trucks -->
+  <circle cx="98" cy="190" r="9" fill="#ffffff"/>
+  <circle cx="128" cy="190" r="9" fill="#ffffff"/>
+  <circle cx="158" cy="190" r="9" fill="#ffffff"/>
+</svg>

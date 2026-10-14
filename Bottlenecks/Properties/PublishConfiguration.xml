@@ -77,7 +77,10 @@ Find them under **Options - Bottlenecks**.
 	<!--Thumbnail-->
 	<Thumbnail Value="Properties/Thumbnail.png" />
 	<!--Screenshot, can be set multiple times-->
-	<Screenshot Value="" />
+	<Screenshot Value="Properties/Screenshots/01-train-deadlock.png" />
+	<Screenshot Value="Properties/Screenshots/02-cargo-station-backlogged.png" />
+	<Screenshot Value="Properties/Screenshots/03-deadlock-notification.png" />
+	<Screenshot Value="Properties/Screenshots/04-settings.png" />
 	<!--Tag, can be set multiple times-->
 	<Tag Value="Code Mod" />
 	<!--Link to the forum post where the mod can be discussed-->

@@ -19,8 +19,12 @@ namespace Bottlenecks.Systems
 					"Bottlenecks.Deadlock",
 					LocalizedString.Value("Train deadlock"),
 					held
-						? LocalizedString.Value($"{trainCount} train(s) stuck in a deadlock and held in place. Click to jump there.")
-						: LocalizedString.Value($"{trainCount} stuck train(s) were despawned. Click to jump there."),
+						? LocalizedString.Value(trainCount == 1
+							? "1 train stuck in a deadlock and held in place. Click to jump there."
+							: $"{trainCount} trains stuck in a deadlock and held in place. Click to jump there.")
+						: LocalizedString.Value(trainCount == 1
+							? "1 stuck train was despawned. Click to jump there."
+							: $"{trainCount} stuck trains were despawned. Click to jump there."),
 					onClicked: () =>
 					{
 						JumpTo(world, position);

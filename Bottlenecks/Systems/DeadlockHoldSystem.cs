@@ -62,6 +62,7 @@ namespace Bottlenecks.Systems
 			NativeArray<Entity> entities = m_Query.ToEntityArray(Allocator.Temp);
 			NativeArray<PathOwner> pathOwners = m_Query.ToComponentDataArray<PathOwner>(Allocator.Temp);
 			NativeArray<Transform> transforms = m_Query.ToComponentDataArray<Transform>(Allocator.Temp);
+			NativeArray<Blocker> blockers = m_Query.ToComponentDataArray<Blocker>(Allocator.Temp);
 
 			int newlyHeld = 0;
 			float3 firstPosition = default;
@@ -72,6 +73,13 @@ namespace Bottlenecks.Systems
 				PathOwner pathOwner = pathOwners[i];
 
 				if ((pathOwner.m_State & PathFlags.Stuck) == 0)
+				{
+					continue;
+				}
+
+				// Blocked by a parked train (depot/yard track): vanilla removes the parked train and the
+				// moving train continues, so leave the flag for TransportTrainAISystem to handle.
+				if (EntityManager.HasComponent<ParkedTrain>(blockers[i].m_Blocker))
 				{
 					continue;
 				}
@@ -92,6 +100,7 @@ namespace Bottlenecks.Systems
 			entities.Dispose();
 			pathOwners.Dispose();
 			transforms.Dispose();
+			blockers.Dispose();
 
 			DropResolved(m_SimulationSystem.frameIndex);
 

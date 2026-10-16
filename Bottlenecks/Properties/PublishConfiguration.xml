@@ -84,7 +84,7 @@ Find them under **Options - Bottlenecks**.
 	<!--Tag, can be set multiple times-->
 	<Tag Value="Code Mod" />
 	<!--Link to the forum post where the mod can be discussed-->
-	<ForumLink Value="" />
+	<ForumLink Value="https://forum.paradoxplaza.com/forum/threads/bottlenecks-a-cs2-mod-for-jammed-rail-and-cargo-networks-fixes-issues-with-post-services.1945897/" />
 	<!--Version of the mod-->
 	<ModVersion Value="1.0.2" />
 	<!--Recommended version of the base game to use the mod-->

@@ -63,6 +63,7 @@ namespace Bottlenecks.Systems
 				NativeArray<PathOwner> pathOwners = m_Query.ToComponentDataArray<PathOwner>(Allocator.Temp);
 				NativeArray<Transform> transforms = m_Query.ToComponentDataArray<Transform>(Allocator.Temp);
 				NativeArray<TrainCurrentLane> lanes = m_Query.ToComponentDataArray<TrainCurrentLane>(Allocator.Temp);
+				NativeArray<Entity> entities = m_Query.ToEntityArray(Allocator.Temp);
 
 				int despawnedCount = 0;
 				float3 firstPosition = default;
@@ -70,6 +71,13 @@ namespace Bottlenecks.Systems
 				for (int i = 0; i < pathOwners.Length; i++)
 				{
 					if ((pathOwners[i].m_State & PathFlags.Stuck) == 0)
+					{
+						continue;
+					}
+
+					// Empty trains that got stuck right after leaving their yard despawn silently, as in vanilla.
+					// (Passengers and cargo are still attached here: Modification4 runs before ObjectEmergeSystem.)
+					if (TrainChecks.IsEmptyAndFreshFromYard(EntityManager, entities[i]))
 					{
 						continue;
 					}
@@ -112,6 +120,7 @@ namespace Bottlenecks.Systems
 				pathOwners.Dispose();
 				transforms.Dispose();
 				lanes.Dispose();
+				entities.Dispose();
 
 				if (despawnedCount > 0)
 				{

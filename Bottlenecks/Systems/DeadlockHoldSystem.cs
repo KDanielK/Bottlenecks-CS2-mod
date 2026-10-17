@@ -84,6 +84,12 @@ namespace Bottlenecks.Systems
 					continue;
 				}
 
+				// Empty train that just left its yard: let vanilla despawn it, as players expect.
+				if (TrainChecks.IsEmptyAndFreshFromYard(EntityManager, entity))
+				{
+					continue;
+				}
+
 				pathOwner.m_State &= ~PathFlags.Stuck;
 				EntityManager.SetComponentData(entity, pathOwner);
 

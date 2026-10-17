@@ -86,7 +86,7 @@ Find them under **Options - Bottlenecks**.
 	<!--Link to the forum post where the mod can be discussed-->
 	<ForumLink Value="https://forum.paradoxplaza.com/forum/threads/bottlenecks-a-cs2-mod-for-jammed-rail-and-cargo-networks-fixes-issues-with-post-services.1945897/" />
 	<!--Version of the mod-->
-	<ModVersion Value="1.0.2" />
+	<ModVersion Value="1.0.3" />
 	<!--Recommended version of the base game to use the mod-->
 	<GameVersion Value="1.6.*" />
 	<!--Dependency for the mod, can be set multiple times-->
@@ -95,7 +95,7 @@ Find them under **Options - Bottlenecks**.
 	<RequiredDLC Value="" />
 	<!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
 	<ChangeLog>
-- Fix: trains blocked by a parked train (for example on a depot or railyard track) are no longer held. The game clears the parked train as in vanilla, so depots and yards no longer jam up and parked trains no longer pile up.
+- Empty trains that get stuck right after leaving a depot or rail yard (for example when they spawn on top of each other) are no longer held. The game despawns them as in vanilla, without a marker or notification.
 	</ChangeLog>
 	<!--External link, can be set multiple times. supported types are "discord", "github", "youtube", "twitch", "x", "paypal", "patreon", "buymeacoffee", "kofi", "crowdin", "gitlab", "gofundme"-->
 	<ExternalLink Type="" Url="" />

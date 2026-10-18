@@ -98,7 +98,7 @@ Find them under **Options - Bottlenecks**.
 - Empty trains that get stuck right after leaving a depot or rail yard (for example when they spawn on top of each other) are no longer held. The game despawns them as in vanilla, without a marker or notification.
 	</ChangeLog>
 	<!--External link, can be set multiple times. supported types are "discord", "github", "youtube", "twitch", "x", "paypal", "patreon", "buymeacoffee", "kofi", "crowdin", "gitlab", "gofundme"-->
-	<ExternalLink Type="" Url="" />
+	<ExternalLink Type="github" Url="https://github.com/KDanielK/Bottlenecks-CS2-mod" />
 	<!--Supported values Public, Private, Unlisted-->
 	<AccessLevel Value="Public" />
 </Publish>

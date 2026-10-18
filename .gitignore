@@ -13,3 +13,6 @@ Bottlenecks/Library/
 *.local.*
 .env
 .env.*
+
+# Local working notes for Claude Code (never published)
+CLAUDE.md

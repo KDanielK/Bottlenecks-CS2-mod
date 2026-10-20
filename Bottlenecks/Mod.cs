@@ -15,8 +15,10 @@ namespace Bottlenecks
 
         public static Setting Settings { get; private set; }
 
-        // Developer switch: set to true to register the post/cargo diagnostics systems, which write the state
-        // of post facilities and cargo stations to the log about once a minute. Not exposed in the options.
+        // Developer switch, not exposed in the options. Set to true and rebuild to log [Diag] lines about once a
+        // minute: post facilities, cargo stations, cargo lines, captured storage transfer routes (truck hops between
+        // stations with a truck/line cost comparison and line layouts), and the [Rail] summary of bulk freight
+        // optimisation with samples of the truck hops it kept. Useful after a game update to re-check cargo routing.
         public static readonly bool EnableDiagnostics = false;
 
         public void OnLoad(UpdateSystem updateSystem)
@@ -35,12 +37,15 @@ namespace Bottlenecks
             updateSystem.UpdateBefore<DeadlockHoldSystem, TransportTrainAISystem>(SystemUpdatePhase.GameSimulation);
             updateSystem.UpdateAt<BlockedTrainSystem>(SystemUpdatePhase.GameSimulation);
             updateSystem.UpdateAt<TrainDespawnMarkerSystem>(SystemUpdatePhase.Modification4);
+            updateSystem.UpdateBefore<RailFreightRerouteSystem, StorageTransferSystem>(SystemUpdatePhase.GameSimulation);
             if (EnableDiagnostics)
             {
                 updateSystem.UpdateAt<PostDiagnosticsSystem>(SystemUpdatePhase.GameSimulation);
                 updateSystem.UpdateAt<CargoDiagnosticsSystem>(SystemUpdatePhase.GameSimulation);
+                updateSystem.UpdateBefore<RouteCaptureDiagnosticsSystem, StorageTransferSystem>(SystemUpdatePhase.GameSimulation);
             }
-            updateSystem.UpdateAt<CargoQueueTestSystem>(SystemUpdatePhase.GameSimulation);
+            // MainLoop also runs while the game is paused (e.g. with the options open), so the reset button acts at once.
+            updateSystem.UpdateAt<CargoQueueTestSystem>(SystemUpdatePhase.MainLoop);
             updateSystem.UpdateAt<CargoStationOverloadSystem>(SystemUpdatePhase.GameSimulation);
         }
 

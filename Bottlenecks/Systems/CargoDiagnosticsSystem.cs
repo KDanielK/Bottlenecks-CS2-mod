@@ -55,7 +55,171 @@ namespace Bottlenecks.Systems
 
 			PrefabSystem prefabSystem = World.GetOrCreateSystemManaged<PrefabSystem>();
 			LogCargoStations(prefabSystem);
+			LogTransferDestinations();
+			LogCargoLineSpeeds(prefabSystem);
 			LogResourceBuyers();
+		}
+
+		// The pathfinder's A* heuristic for cargo uses 2 x 0.01 / maxCargoTransportSpeed per metre (the fastest
+		// cargo line in the city). If a line is slower than half of that, the heuristic overestimates its cost.
+		private void LogCargoLineSpeeds(PrefabSystem prefabSystem)
+		{
+			World.GetOrCreateSystemManaged<Game.Simulation.TransportLineSystem>().GetMaxTransportSpeed(out float maxPassenger, out float maxCargo);
+			Mod.log.Info($"[Diag] CargoLines maxCargoTransportSpeed={maxCargo:0.0} m/s (heuristic {2f * 0.01f / math.max(0.01f, maxCargo):0.000000}/m), maxPassengerTransportSpeed={maxPassenger:0.0} m/s");
+
+			EntityQuery lines = GetEntityQuery(ComponentType.ReadOnly<Game.Routes.TransportLine>(), ComponentType.ReadOnly<PrefabRef>(), ComponentType.Exclude<Deleted>(), ComponentType.Exclude<Temp>());
+			NativeArray<Entity> routes = lines.ToEntityArray(Allocator.Temp);
+			try
+			{
+				for (int i = 0; i < routes.Length; i++)
+				{
+					Entity prefab = EntityManager.GetComponentData<PrefabRef>(routes[i]).m_Prefab;
+					if (!EntityManager.HasComponent<TransportLineData>(prefab) || !EntityManager.GetComponentData<TransportLineData>(prefab).m_CargoTransport)
+					{
+						continue;
+					}
+
+					TransportLineData lineData = EntityManager.GetComponentData<TransportLineData>(prefab);
+					float distance = 0f;
+					float duration = 0f;
+					float maxSegmentSpeed = 0f;
+					int segmentCount = 0;
+					if (EntityManager.HasBuffer<Game.Routes.RouteSegment>(routes[i]))
+					{
+						DynamicBuffer<Game.Routes.RouteSegment> segments = EntityManager.GetBuffer<Game.Routes.RouteSegment>(routes[i], true);
+						for (int s = 0; s < segments.Length; s++)
+						{
+							if (!EntityManager.HasComponent<Game.Routes.RouteInfo>(segments[s].m_Segment))
+							{
+								continue;
+							}
+
+							Game.Routes.RouteInfo info = EntityManager.GetComponentData<Game.Routes.RouteInfo>(segments[s].m_Segment);
+							distance += info.m_Distance;
+							duration += info.m_Duration;
+							maxSegmentSpeed = math.max(maxSegmentSpeed, math.max(1f, info.m_Distance) / math.max(1f, info.m_Duration));
+							segmentCount++;
+						}
+					}
+
+					float avgSpeed = duration > 0f ? distance / duration : 0f;
+					Game.Routes.TransportLine line = EntityManager.GetComponentData<Game.Routes.TransportLine>(routes[i]);
+					Mod.log.Info($"[Diag] CargoLine idx={routes[i].Index} {prefabSystem.GetPrefabName(prefab)} ({lineData.m_TransportType}) segments={segmentCount} length={distance / 1000f:0.0}km duration={duration:0}s avgSpeed={avgSpeed:0.0}m/s maxSegmentSpeed={maxSegmentSpeed:0.0}m/s realCost={(avgSpeed > 0f ? 0.01f / avgSpeed : 0f):0.000000}/m interval={line.m_VehicleInterval:0}s");
+				}
+			}
+			finally
+			{
+				routes.Dispose();
+			}
+		}
+
+		// Where do the stations' outgoing transfer requests go, by mode? Groups requests by target kind and
+		// straight-line distance, to see whether short station-to-station hops really go by truck.
+		private void LogTransferDestinations()
+		{
+			NativeArray<Entity> stations = m_CargoStationQuery.ToEntityArray(Allocator.Temp);
+			Dictionary<string, long[]> groups = new Dictionary<string, long[]>();
+			try
+			{
+				for (int i = 0; i < stations.Length; i++)
+				{
+					if (!EntityManager.HasBuffer<StorageTransferRequest>(stations[i]))
+					{
+						continue;
+					}
+
+					float3 from = GetPosition(stations[i], out bool hasFrom);
+					DynamicBuffer<StorageTransferRequest> requests = EntityManager.GetBuffer<StorageTransferRequest>(stations[i], true);
+					for (int r = 0; r < requests.Length; r++)
+					{
+						StorageTransferRequest request = requests[r];
+						if ((request.m_Flags & StorageTransferFlags.Incoming) != 0)
+						{
+							continue;
+						}
+
+						string mode = (request.m_Flags & StorageTransferFlags.Car) != 0 ? "truck"
+							: ((request.m_Flags & StorageTransferFlags.Transport) != 0 ? "rail" : "other");
+						float3 to = GetPosition(request.m_Target, out bool hasTo);
+						string distance = hasFrom && hasTo ? DistanceBucket(math.distance(from.xz, to.xz)) : "?";
+						string key = mode + " " + PrefabName(stations[i]) + " -> " + TargetKind(request.m_Target) + ":" + PrefabName(request.m_Target) + " " + distance;
+						if (!groups.TryGetValue(key, out long[] sums))
+						{
+							sums = new long[2];
+							groups[key] = sums;
+						}
+
+						sums[0]++;
+						sums[1] += math.abs(request.m_Amount);
+					}
+				}
+			}
+			finally
+			{
+				stations.Dispose();
+			}
+
+			List<KeyValuePair<string, long[]>> sorted = new List<KeyValuePair<string, long[]>>(groups);
+			sorted.Sort((a, b) => b.Value[0].CompareTo(a.Value[0]));
+			StringBuilder sb = new StringBuilder("[Diag] TransferDest outgoing requests: ");
+			foreach (KeyValuePair<string, long[]> group in sorted)
+			{
+				sb.Append(group.Key).Append('=').Append(group.Value[0]).Append(" (").Append((group.Value[1] / 1e6f).ToString("0.0")).Append("M); ");
+			}
+
+			Mod.log.Info(sb.ToString());
+		}
+
+		private string TargetKind(Entity target)
+		{
+			if (target == Entity.Null || !EntityManager.Exists(target))
+			{
+				return "missing";
+			}
+
+			if (EntityManager.HasComponent<Game.Objects.OutsideConnection>(target))
+			{
+				return "outside";
+			}
+
+			if (EntityManager.HasComponent<Game.Buildings.CargoTransportStation>(target))
+			{
+				return "station";
+			}
+
+			if (EntityManager.HasComponent<Game.Companies.StorageCompany>(target))
+			{
+				return "warehouse";
+			}
+
+			return EntityManager.HasComponent<PropertyRenter>(target) ? "company" : "other";
+		}
+
+		private string PrefabName(Entity entity)
+		{
+			if (entity == Entity.Null || !EntityManager.Exists(entity) || !EntityManager.HasComponent<PrefabRef>(entity))
+			{
+				return "?";
+			}
+
+			return World.GetOrCreateSystemManaged<PrefabSystem>().GetPrefabName(EntityManager.GetComponentData<PrefabRef>(entity).m_Prefab);
+		}
+
+		// Companies have no transform themselves; use their building.
+		private float3 GetPosition(Entity entity, out bool found)
+		{
+			if (entity != Entity.Null && EntityManager.Exists(entity) && EntityManager.HasComponent<PropertyRenter>(entity))
+			{
+				entity = EntityManager.GetComponentData<PropertyRenter>(entity).m_Property;
+			}
+
+			found = entity != Entity.Null && EntityManager.Exists(entity) && EntityManager.HasComponent<Game.Objects.Transform>(entity);
+			return found ? EntityManager.GetComponentData<Game.Objects.Transform>(entity).m_Position : default;
+		}
+
+		private static string DistanceBucket(float metres)
+		{
+			return metres < 1000f ? "<1km" : (metres < 3000f ? "1-3km" : (metres < 8000f ? "3-8km" : ">8km"));
 		}
 
 		private void LogCargoStations(PrefabSystem prefabSystem)

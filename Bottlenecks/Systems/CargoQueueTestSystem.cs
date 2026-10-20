@@ -2,7 +2,10 @@ using Game;
 using Game.Citizens;
 using Game.Common;
 using Game.Companies;
+using Game.SceneFlow;
 using Game.Tools;
+using Game.UI;
+using Game.UI.Localization;
 using Unity.Collections;
 using Unity.Entities;
 using UnityEngine.Scripting;
@@ -102,6 +105,32 @@ namespace Bottlenecks.Systems
 			holders.Dispose();
 
 			Mod.log.Info($"[Test] Cargo transfer reset: cleared {tripCount} queued trips at {stationCount} cargo stations (about {tripGoods} units of goods lost) and {requestCount} transfer requests at {holderCount} storage buildings.");
+
+			if (Mod.Settings != null && !Mod.Settings.BulkFreightOptimisation)
+			{
+				SuggestBulkFreightOptimisation();
+			}
+		}
+
+		// After a reset with bulk freight optimisation off, offer to turn it on, so the re-planned transfers between
+		// connected stations go by cargo line and the backlog is less likely to build up again.
+		private static void SuggestBulkFreightOptimisation()
+		{
+			MessageDialog dialog = new MessageDialog(
+				LocalizedString.Id("Bottlenecks.BulkFreightTip.Title"),
+				LocalizedString.Id("Bottlenecks.BulkFreightTip.Message"),
+				LocalizedString.Id("Bottlenecks.BulkFreightTip.TurnOn"),
+				LocalizedString.Id("Bottlenecks.BulkFreightTip.NotNow"));
+			GameManager.instance.userInterface.appBindings.ShowMessageDialog(dialog, choice =>
+			{
+				// 0 = confirm action ("Turn it on"), 1 = dialog closed, 2 = "Not now" (as in ModManager/InputManager).
+				if (choice == 0 && Mod.Settings != null)
+				{
+					Mod.Settings.BulkFreightOptimisation = true;
+					Mod.Settings.ApplyAndSave();
+					Mod.log.Info("Bulk freight optimisation turned on from the reset dialog.");
+				}
+			});
 		}
 	}
 }

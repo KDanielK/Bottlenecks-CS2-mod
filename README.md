@@ -1,6 +1,6 @@
 # Bottlenecks
 
-A Cities: Skylines II code mod that finds deadlocked trains, lets you decide what happens to them, flags overloaded cargo stations, and can get a jammed supply chain and post service running again.
+A Cities: Skylines II code mod that finds deadlocked trains, lets you decide what happens to them, flags overloaded cargo stations, moves bulk cargo onto your cargo lines, and can get a jammed supply chain and post service running again.
 
 - **Paradox Mods:** https://mods.paradoxplaza.com/mods/163289/Windows
 - **Feedback and discussion:** [Paradox forum thread](https://forum.paradoxplaza.com/forum/threads/bottlenecks-a-cs2-mod-for-jammed-rail-and-cargo-networks-fixes-issues-with-post-services.1945897/)
@@ -21,6 +21,7 @@ Some deadlocks are left to the game, as in vanilla: a train blocked by a parked 
 - 🔵 **Not selling:** the station's truck queue has been too long for a while, so companies buy elsewhere. Not critical.
 - 🟠 **Overloaded:** the station's trucks are falling behind.
 - 🔴 **Backlogged:** a runaway backlog that won't clear by itself. It also stops mail to and from the outside, which takes the post service down.
+- **Bulk freight optimisation** (Options, off by default): cargo between two stations that one of your cargo lines connects goes by that line (train, ship or airplane) instead of by truck, which frees up the stations' trucks for companies, warehouses and container yards.
 - **Reset cargo transfers** (Options): clears a runaway backlog. Fix the cause first and save before using it, because goods in queued trips are lost.
 
 Hover any icon in the building's info panel for an explanation.
@@ -51,7 +52,9 @@ The build deploys the mod to your local Mods folder (`...\Cities Skylines II\Mod
 Project layout:
 - `Bottlenecks/Mod.cs`: entry point and system registration
 - `Bottlenecks/Setting.cs`: options page and English texts
-- `Bottlenecks/Systems/`: the simulation systems (deadlock holding, train and cargo icons, despawn markers, cargo reset, optional diagnostics)
+- `Bottlenecks/Systems/`: the simulation systems (deadlock holding, train and cargo icons, despawn markers, cargo reset, bulk freight optimisation, optional diagnostics)
+
+Diagnostics are off in release builds. Set `Mod.EnableDiagnostics` to `true` in `Mod.cs` and rebuild to log `[Diag]` and `[Rail]` lines about post facilities, cargo stations, cargo lines and storage transfer routes, for example to re-check cargo routing after a game update.
 - `Bottlenecks/Icons/`: icon sources (SVG) and the embedded PNGs
 
 ## License

@@ -4,7 +4,7 @@
 	<!--Name of the mod to display to players-->
 	<DisplayName Value="Bottlenecks" />
 	<!--Short description of the mod-->
-	<ShortDescription Value="Find deadlocked trains and manage despawning, spot overloaded cargo stations, and get a jammed supply chain and post service running again." />
+	<ShortDescription Value="Find deadlocked trains and manage despawning, spot overloaded cargo stations, move bulk cargo onto your cargo lines, and get a jammed supply chain and post service running again." />
 	<!--Long description of the mod. Single line or multi line. Supports minimal markdown subset-->
 	<!--LongDescription Value="This is a long description" /-->
 	<LongDescription>
@@ -33,6 +33,14 @@ Cargo stations, harbors and cargo airports move goods on to their customers with
 
 The cargo station icons show this as it builds up, and **Reset cargo transfers** clears it. In our test city a single reset cleared over 370,000 queued truck trips. The post service was running normally again about 15 minutes later, companies bought from the stations again, more cargo moved by rail, and the game ran noticeably smoother.
 
+## Free up your station trucks: bulk freight optimisation
+
+Cargo stations, harbors and cargo airports pass large amounts of bulk cargo to each other. The game often sends it by truck, even between two stations that one of your cargo lines connects, so you see trucks driving next to your own tracks and shipping lanes, often between stations only one or two stops apart. Those trips use the same trucks the stations need for their customers, and the truck queues grow.
+
+**Bulk freight optimisation** sends that cargo by the cargo line that connects the two stations instead: train, ship or airplane. The trucks are then free for the trips only they can make, to and from companies, warehouses and container yards. In our test city, after a reset, about 85% of the cargo legs between stations went by line instead of by truck, and the truck queues stayed short.
+
+It is off by default. Turn it on under Options - Bottlenecks, or say yes when the reset offers it.
+
 ## What you will see
 
 - **Green icon - queue.** A train has been waiting more than about 90 seconds for a busy station platform. Usually fine, but a sign the station is close to capacity.
@@ -60,9 +68,14 @@ Find them under **Options - Bottlenecks**.
 - **Show cargo station icons** (on by default)
   - Shows a blue, orange or red icon on a cargo station, harbor or cargo airport whose truck queue is too long.
   - Hover the icon to read what each colour means.
+- **Bulk freight optimisation** (off by default)
+  - Cargo between two cargo stations, harbors or cargo airports goes by the cargo line that connects them (train, ship or airplane) instead of by truck.
+  - Frees up the stations' trucks for companies, warehouses and container yards.
+  - Applies to newly planned transfers. Make sure busy lines have enough vehicles.
 - **Reset cargo transfers**
   - Clears the queued truck trips at all cargo stations, harbors and cargo airports, and the pending transfer requests at all storage buildings.
   - Storage buildings then plan new transfers from their actual stock, and the post service can recover.
+  - Works right away, also while the game is paused. If bulk freight optimisation is off, it offers to turn it on.
   - Meant for a runaway backlog (red icon). Blue and orange stations recover by themselves or by improving roads, rail and trucks; do not reset for those.
   - Fix the cause first (for example a traffic jam), or the backlog will build up again.
   - Save first: goods in queued trips are lost. Vehicles already on the road continue.
@@ -71,7 +84,8 @@ Find them under **Options - Bottlenecks**.
 
 - Works for trains, cargo trains, trams and subways. They all share the same rail simulation. Testing so far has mainly been done with trains.
 - With holding enabled, a deadlock does not clear by itself. Trains behind it will queue until you fix the track.
-- The mod does not change signals, routes or pathfinding. Apart from holding deadlocked trains and the reset you start yourself, it only observes and shows icons.
+- The mod does not change signals or pathfinding. Apart from holding deadlocked trains, the reset you start yourself and bulk freight optimisation (off by default), it only observes and shows icons.
+- Bulk freight optimisation only changes which vehicle carries cargo between two stations that a cargo line connects. Container yards and other buildings without a cargo line are still served by truck.
 - Safe to add to or remove from an existing save.
 	</LongDescription>
 	<!--Thumbnail-->
@@ -86,7 +100,7 @@ Find them under **Options - Bottlenecks**.
 	<!--Link to the forum post where the mod can be discussed-->
 	<ForumLink Value="https://forum.paradoxplaza.com/forum/threads/bottlenecks-a-cs2-mod-for-jammed-rail-and-cargo-networks-fixes-issues-with-post-services.1945897/" />
 	<!--Version of the mod-->
-	<ModVersion Value="1.0.4" />
+	<ModVersion Value="1.1.0" />
 	<!--Recommended version of the base game to use the mod-->
 	<GameVersion Value="1.6.*" />
 	<!--Dependency for the mod, can be set multiple times-->
@@ -95,7 +109,9 @@ Find them under **Options - Bottlenecks**.
 	<RequiredDLC Value="" />
 	<!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
 	<ChangeLog>
-- Maintenance release.
+- New setting: Bulk freight optimisation (off by default). Cargo between two cargo stations, harbors or cargo airports goes by the cargo line that connects them (train, ship or airplane) instead of by truck, which frees up the stations' trucks for companies, warehouses and container yards.
+- Reset cargo transfers now works right away, also while the game is paused in the options, and offers to turn on bulk freight optimisation if it is off.
+- The cargo station hover texts mention bulk freight optimisation.
 	</ChangeLog>
 	<!--External link, can be set multiple times. supported types are "discord", "github", "youtube", "twitch", "x", "paypal", "patreon", "buymeacoffee", "kofi", "crowdin", "gitlab", "gofundme"-->
 	<ExternalLink Type="github" Url="https://github.com/KDanielK/Bottlenecks-CS2-mod" />

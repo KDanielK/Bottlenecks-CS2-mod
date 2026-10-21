@@ -45,7 +45,7 @@ namespace Bottlenecks.Systems
 		private SimulationSystem m_SimulationSystem;
 		private PrefabSystem m_PrefabSystem;
 
-		private readonly HashSet<Entity> m_Seen = new HashSet<Entity>();
+		private readonly Dictionary<Entity, RouteResultKey> m_Seen = new Dictionary<Entity, RouteResultKey>();
 		private readonly Dictionary<string, int> m_PatternCounts = new Dictionary<string, int>();
 		private readonly List<string> m_Samples = new List<string>();
 		private readonly List<string> m_Hops = new List<string>();
@@ -100,10 +100,13 @@ namespace Bottlenecks.Systems
 					continue;
 				}
 
-				if (!m_Seen.Add(entities[i]))
+				RouteResultKey key = RouteResultKey.Of(info);
+				if (m_Seen.TryGetValue(entities[i], out RouteResultKey seen) && seen.Equals(key))
 				{
 					continue;
 				}
+
+				m_Seen[entities[i]] = key;
 
 				try
 				{

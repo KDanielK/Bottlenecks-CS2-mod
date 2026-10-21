@@ -32,7 +32,8 @@ namespace Bottlenecks.Systems
 			public bool Car;
 			public bool Ride;
 			public int First; // index of the element that closed the previous section (-1 at the origin)
-			public int Last;  // index of the element that closes this section
+			public int Last;  // index of the element that closes this section (path length for the final leg to the destination)
+			public bool ClosedBySegmentEnd; // closed by the end of a ride segment that belongs to this section
 		}
 
 		private struct Ride
@@ -56,7 +57,7 @@ namespace Bottlenecks.Systems
 		private EntityQuery m_LineQuery;
 		private SimulationSystem m_SimulationSystem;
 
-		private readonly HashSet<Entity> m_Done = new HashSet<Entity>();
+		private readonly Dictionary<Entity, RouteResultKey> m_Done = new Dictionary<Entity, RouteResultKey>();
 		private List<CargoLine> m_Lines;
 		private uint m_LinesFrame;
 		private uint m_LastReport;
@@ -65,6 +66,14 @@ namespace Bottlenecks.Systems
 		private int m_NoLine;
 		private int m_Mixed;
 		private int m_Stale;
+		private int m_Leaks;
+		private int m_ExactLeaks;
+		private readonly List<string> m_ExactLeakSamples = new List<string>();
+		private string m_LastOriginalDump = "";
+		private int m_NewWithoutPending;
+		private int m_NoRideOnLines;
+		private readonly List<string> m_LeakSamples = new List<string>();
+		private readonly List<string> m_NoRideSamples = new List<string>();
 		private bool m_LoggedFirst;
 		private readonly List<string> m_Samples = new List<string>();
 		private PrefabSystem m_PrefabSystem;
@@ -113,10 +122,20 @@ namespace Bottlenecks.Systems
 					continue;
 				}
 
-				if (!m_Done.Add(entities[i]))
+				RouteResultKey key = RouteResultKey.Of(info);
+				bool known = m_Done.TryGetValue(entities[i], out RouteResultKey done);
+				if (known && done.Equals(key))
 				{
 					continue;
 				}
+
+				if (known)
+				{
+					// A new result arrived without this system ever seeing the search as Pending (missed before 1.1.2).
+					m_NewWithoutPending++;
+				}
+
+				m_Done[entities[i]] = key;
 
 				if (m_Lines == null || frame - m_LinesFrame >= 1024)
 				{
@@ -142,7 +161,22 @@ namespace Bottlenecks.Systems
 				// Diagnostics only: a summary of what was moved and samples of the truck hops that were kept.
 				if (Mod.EnableDiagnostics && m_Paths > 0)
 				{
-					Mod.log.Info($"[Rail] routes={m_Paths} truckHopsMovedToRail={m_Rerouted} truckHopsWithoutLine={m_NoLine} truckHopsMixedWithRide={m_Mixed} staleLineSkipped={m_Stale}");
+					Mod.log.Info($"[Rail] routes={m_Paths} truckHopsMovedToRail={m_Rerouted} truckHopsWithoutLine={m_NoLine} truckHopsMixedWithRide={m_Mixed} staleLineSkipped={m_Stale} leaksAfterRewrite={m_Leaks} noRideBetweenStationsOnLines={m_NoRideOnLines} newResultsWithoutPending={m_NewWithoutPending} exactCarLegsBetweenStationsAfterRewrite={m_ExactLeaks}");
+					foreach (string sample in m_ExactLeakSamples)
+					{
+						Mod.log.Info("[Rail] EXACTLEAK " + sample);
+					}
+
+					foreach (string sample in m_LeakSamples)
+					{
+						Mod.log.Info("[Rail] LEAK " + sample);
+					}
+
+					foreach (string sample in m_NoRideSamples)
+					{
+						Mod.log.Info("[Rail] noRide " + sample);
+					}
+
 					foreach (string sample in m_Samples)
 					{
 						Mod.log.Info("[Rail] kept truck hop " + sample);
@@ -150,7 +184,10 @@ namespace Bottlenecks.Systems
 
 				}
 
-				m_Paths = m_Rerouted = m_NoLine = m_Mixed = m_Stale = 0;
+				m_Paths = m_Rerouted = m_NoLine = m_Mixed = m_Stale = m_Leaks = m_NoRideOnLines = m_NewWithoutPending = m_ExactLeaks = 0;
+				m_ExactLeakSamples.Clear();
+				m_LeakSamples.Clear();
+				m_NoRideSamples.Clear();
 				m_Samples.Clear();
 				if (m_Done.Count > 20000)
 				{
@@ -168,6 +205,11 @@ namespace Bottlenecks.Systems
 			}
 
 			m_Paths++;
+			if (Mod.EnableDiagnostics && m_ExactLeakSamples.Count < 3)
+			{
+				m_LastOriginalDump = DumpPath(path);
+			}
+
 			List<Section> sections = Split(info, path);
 			List<PathElement> rebuilt = null;
 			int copied = 0; // elements [0, copied) of the old path are already in rebuilt (or dropped)
@@ -177,6 +219,13 @@ namespace Bottlenecks.Systems
 				if (!section.Car || !IsStation(section.From) || !IsStation(section.To))
 				{
 					continue;
+				}
+
+				if (Mod.EnableDiagnostics && LinesAt(section.From) != "none")
+				{
+					bool moved = FindRide(section.From, section.To, out _, out _);
+					StorageTransfer hopTransfer = EntityManager.GetComponentData<StorageTransfer>(storage);
+					Mod.log.Info($"[Rail] hop {Describe(section.From)} -> {Describe(section.To)} {hopTransfer.m_Resource} {math.abs(hopTransfer.m_Amount)} ride={section.Ride} lineFound={moved}");
 				}
 
 				// A section that drives and also rides part of a line ("mixed") still becomes a truck trip in
@@ -193,6 +242,15 @@ namespace Bottlenecks.Systems
 					}
 
 					Sample(section.Ride ? "mixed" : "noLine", storage, section);
+					if (Mod.EnableDiagnostics && LinesAt(section.From) != "none" && LinesAt(section.To) != "none")
+					{
+						m_NoRideOnLines++;
+						if (m_NoRideSamples.Count < 8)
+						{
+							StorageTransfer transfer = EntityManager.GetComponentData<StorageTransfer>(storage);
+							m_NoRideSamples.Add($"{transfer.m_Resource} {math.abs(transfer.m_Amount)}: {Describe(section.From)} -> {Describe(section.To)} ride={section.Ride} lines: {LinesAt(section.From)} / {LinesAt(section.To)} why: {WhyNoRide(section.From, section.To)}");
+						}
+					}
 					continue;
 				}
 
@@ -223,8 +281,10 @@ namespace Bottlenecks.Systems
 					rebuilt.Add(new PathElement(line.Segments[(ride.Start + k) % n], new float2(0f, 1f)));
 				}
 
-				// The element that closes the truck section (To's lane or the next ride's first segment) stays.
-				copied = section.Last;
+				// The element that closes the section stays (To's lane, or the first segment of the next ride), except a
+				// ride segment that is itself part of this (mixed) section: it was replaced by the new ride, and keeping it
+				// would make HandleCargoPath book a leg back to its start and a second ride (fixed after 1.1.1).
+				copied = section.ClosedBySegmentEnd ? section.Last + 1 : section.Last;
 				m_Rerouted++;
 				if (!m_LoggedFirst)
 				{
@@ -247,6 +307,185 @@ namespace Bottlenecks.Systems
 			for (int i = 0; i < rebuilt.Count; i++)
 			{
 				path.Add(rebuilt[i]);
+			}
+
+			if (Mod.EnableDiagnostics)
+			{
+				VerifyRewrite(storage, info, path);
+			}
+		}
+
+		// Diagnostics: split the edited route again like HandleCargoPath does. Any truck section left between two
+		// stations that a line connects would still become a truck leg, so it is logged with its path elements.
+		private struct Leg
+		{
+			public Entity From;
+			public Entity To;
+			public bool Car;
+			public bool Track;
+			public bool Transport;
+		}
+
+		// Diagnostics: exact port of StorageTransferSystem.HandleCargoPath (game 1.6.2), returning the legs it would
+		// book instead of booking them. Kept separate from Split on purpose, so the check does not share its logic.
+		private List<Leg> EmulateHandleCargoPath(PathInformation info, DynamicBuffer<PathElement> path)
+		{
+			List<Leg> legs = new List<Leg>();
+			Entity entity = info.m_Origin;
+			bool car = false;
+			bool track = false;
+			bool transport = false;
+			for (int i = 0; i < path.Length; i++)
+			{
+				Entity target = path[i].m_Target;
+				if (EntityManager.HasComponent<Game.Net.CarLane>(target))
+				{
+					car = true;
+				}
+				else if (EntityManager.HasComponent<Game.Net.TrackLane>(target))
+				{
+					track = true;
+				}
+				else if (EntityManager.HasComponent<Game.Net.PedestrianLane>(target))
+				{
+					Entity company = StorageCompanyFromLane(target);
+					if (company != Entity.Null && company != entity)
+					{
+						legs.Add(new Leg { From = entity, To = company, Car = car, Track = track, Transport = transport });
+						entity = company;
+						car = track = transport = false;
+					}
+				}
+				else if (EntityManager.HasComponent<Game.Net.ConnectionLane>(target))
+				{
+					Game.Net.ConnectionLane lane = EntityManager.GetComponentData<Game.Net.ConnectionLane>(target);
+					if ((lane.m_Flags & ConnectionLaneFlags.Road) != 0)
+					{
+						car = true;
+					}
+					else if ((lane.m_Flags & ConnectionLaneFlags.Track) != 0)
+					{
+						track = true;
+					}
+				}
+				else if (EntityManager.HasComponent<Game.Routes.Segment>(target))
+				{
+					StorageCompaniesFromSegment(target, out Entity start, out Entity end);
+					if (start != Entity.Null && start != entity)
+					{
+						legs.Add(new Leg { From = entity, To = start, Car = car, Track = track, Transport = transport });
+						entity = start;
+						car = track = transport = false;
+					}
+
+					transport = true;
+					if (end != Entity.Null && end != entity)
+					{
+						legs.Add(new Leg { From = entity, To = end, Car = car, Track = track, Transport = transport });
+						entity = end;
+						car = track = transport = false;
+					}
+				}
+			}
+
+			if (info.m_Destination != entity)
+			{
+				legs.Add(new Leg { From = entity, To = info.m_Destination, Car = car, Track = track, Transport = transport });
+			}
+
+			return legs;
+		}
+
+		private string DumpPath(DynamicBuffer<PathElement> path)
+		{
+			System.Text.StringBuilder sb = new System.Text.StringBuilder();
+			int carRun = 0;
+			for (int i = 0; i < path.Length; i++)
+			{
+				Entity target = path[i].m_Target;
+				if (EntityManager.HasComponent<Game.Net.CarLane>(target))
+				{
+					carRun++;
+					continue;
+				}
+
+				if (carRun > 0)
+				{
+					sb.Append("car*").Append(carRun).Append(' ');
+					carRun = 0;
+				}
+
+				if (EntityManager.HasComponent<Game.Net.PedestrianLane>(target))
+				{
+					Entity company = StorageCompanyFromLane(target);
+					sb.Append("ped").Append(company != Entity.Null ? "@" + company.Index : "").Append(' ');
+				}
+				else if (EntityManager.HasComponent<Game.Routes.Segment>(target))
+				{
+					StorageCompaniesFromSegment(target, out Entity start, out Entity end);
+					sb.Append("seg[").Append(start.Index).Append('>').Append(end.Index).Append("] ");
+				}
+				else if (EntityManager.HasComponent<Game.Net.ConnectionLane>(target))
+				{
+					sb.Append("conn ");
+				}
+				else if (EntityManager.HasComponent<Game.Net.TrackLane>(target))
+				{
+					sb.Append("track ");
+				}
+				else
+				{
+					sb.Append("other ");
+				}
+			}
+
+			if (carRun > 0)
+			{
+				sb.Append("car*").Append(carRun);
+			}
+
+			return sb.ToString();
+		}
+
+		private void VerifyRewrite(Entity storage, PathInformation info, DynamicBuffer<PathElement> path)
+		{
+			foreach (Leg leg in EmulateHandleCargoPath(info, path))
+			{
+				if (leg.Car && IsStation(leg.From) && IsStation(leg.To) && FindRide(leg.From, leg.To, out _, out _))
+				{
+					m_ExactLeaks++;
+					if (m_ExactLeakSamples.Count < 3)
+					{
+						StorageTransfer leakTransfer = EntityManager.GetComponentData<StorageTransfer>(storage);
+						m_ExactLeakSamples.Add($"{leakTransfer.m_Resource} {math.abs(leakTransfer.m_Amount)} leg {Describe(leg.From)} -> {Describe(leg.To)} origin={info.m_Origin.Index} dest={info.m_Destination.Index}\n    BEFORE: {m_LastOriginalDump}\n    AFTER:  {DumpPath(path)}");
+					}
+				}
+			}
+
+			List<Section> sections = Split(info, path);
+			foreach (Section section in sections)
+			{
+				if (section.Car && IsStation(section.From) && IsStation(section.To) && FindRide(section.From, section.To, out _, out _))
+				{
+					m_Leaks++;
+					if (m_LeakSamples.Count < 5)
+					{
+						StorageTransfer transfer = EntityManager.GetComponentData<StorageTransfer>(storage);
+						System.Text.StringBuilder sb = new System.Text.StringBuilder();
+						for (int i = math.max(0, section.First - 3); i <= math.min(path.Length - 1, section.Last + 3); i++)
+						{
+							Entity target = path[i].m_Target;
+							string kind = EntityManager.HasComponent<Game.Net.CarLane>(target) ? "car"
+								: EntityManager.HasComponent<Game.Net.PedestrianLane>(target) ? "ped"
+								: EntityManager.HasComponent<Game.Net.ConnectionLane>(target) ? "conn"
+								: EntityManager.HasComponent<Game.Routes.Segment>(target) ? "seg" + EntityManager.GetComponentData<Game.Routes.Segment>(target).m_Index
+								: EntityManager.HasComponent<Game.Net.TrackLane>(target) ? "track" : "other";
+							sb.Append(i == section.First ? "[" : "").Append(kind).Append(i == section.Last ? "]" : "").Append(' ');
+						}
+
+						m_LeakSamples.Add($"{transfer.m_Resource} {math.abs(transfer.m_Amount)}: {Describe(section.From)} -> {Describe(section.To)} ride={section.Ride} elements: {sb}");
+					}
+				}
 			}
 		}
 
@@ -312,6 +551,64 @@ namespace Bottlenecks.Systems
 			}
 
 			return names.Count == 0 ? "none" : string.Join(",", names);
+		}
+
+		// Diagnostics: per line that stops at From, where the forward walk to To stopped.
+		private string WhyNoRide(Entity from, Entity to)
+		{
+			System.Text.StringBuilder sb = new System.Text.StringBuilder();
+			foreach (CargoLine line in m_Lines)
+			{
+				int n = line.Companies.Length;
+				int a = System.Array.IndexOf(line.Companies, from);
+				int b = System.Array.IndexOf(line.Companies, to);
+				if (a < 0 && b < 0)
+				{
+					continue;
+				}
+
+				sb.Append("line#").Append(line.Route.Index).Append(" from@").Append(a).Append(" to@").Append(b);
+				if (a >= 0)
+				{
+					for (int k = 1; k < n; k++)
+					{
+						int segment = (a + k - 1) % n;
+						if (!line.Usable[segment])
+						{
+							sb.Append(" unusableSeg").Append(segment);
+							break;
+						}
+
+						if (line.Companies[(a + k) % n] == to)
+						{
+							sb.Append(" reachable");
+							break;
+						}
+					}
+				}
+
+				sb.Append("; ");
+			}
+
+			return sb.ToString();
+		}
+
+		// For diagnostics: would the swap find a cargo line ride from one station to the other right now?
+		// For diagnostics: did this system handle exactly this route result of the storage?
+		public bool WasHandled(Entity storage, PathInformation info)
+		{
+			return m_Done.TryGetValue(storage, out RouteResultKey done) && done.Equals(RouteResultKey.Of(info));
+		}
+
+		public bool IsConnected(Entity from, Entity to)
+		{
+			if (m_Lines == null)
+			{
+				m_Lines = BuildLines();
+				m_LinesFrame = m_SimulationSystem.frameIndex;
+			}
+
+			return FindRide(from, to, out _, out _);
 		}
 
 		// Shortest ride (by time) from one station to the next occurrence of the other on any cargo train line.
@@ -407,12 +704,19 @@ namespace Bottlenecks.Systems
 					ride = true;
 					if (end != Entity.Null && end != current)
 					{
-						sections.Add(new Section { From = current, To = end, Car = car, Ride = ride, First = first, Last = i });
+						sections.Add(new Section { From = current, To = end, Car = car, Ride = ride, First = first, Last = i, ClosedBySegmentEnd = true });
 						current = end;
 						car = ride = false;
 						first = i;
 					}
 				}
+			}
+
+			// Like HandleCargoPath: the stretch after the last company passed is a leg to the destination. Without it, a
+			// truck hop at the very end of a route (e.g. ending at a cargo station) was never seen (fixed after 1.1.1).
+			if (info.m_Destination != current)
+			{
+				sections.Add(new Section { From = current, To = info.m_Destination, Car = car, Ride = ride, First = first, Last = path.Length });
 			}
 
 			return sections;

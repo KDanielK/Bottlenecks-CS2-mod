@@ -43,6 +43,7 @@ namespace Bottlenecks
                 updateSystem.UpdateAt<PostDiagnosticsSystem>(SystemUpdatePhase.GameSimulation);
                 updateSystem.UpdateAt<CargoDiagnosticsSystem>(SystemUpdatePhase.GameSimulation);
                 updateSystem.UpdateBefore<RouteCaptureDiagnosticsSystem, StorageTransferSystem>(SystemUpdatePhase.GameSimulation);
+                updateSystem.UpdateAfter<RouteAuditDiagnosticsSystem, StorageTransferSystem>(SystemUpdatePhase.GameSimulation);
             }
             // MainLoop also runs while the game is paused (e.g. with the options open), so the reset button acts at once.
             updateSystem.UpdateAt<CargoQueueTestSystem>(SystemUpdatePhase.MainLoop);

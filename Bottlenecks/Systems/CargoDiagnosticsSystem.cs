@@ -57,6 +57,7 @@ namespace Bottlenecks.Systems
 			LogCargoStations(prefabSystem);
 			LogTransferDestinations();
 			LogQueuedTripTargets();
+			LogStationToStationTrucks();
 			LogCargoLineSpeeds(prefabSystem);
 			LogResourceBuyers();
 		}
@@ -212,6 +213,129 @@ namespace Bottlenecks.Systems
 			}
 
 			Mod.log.Info(sb.ToString());
+		}
+
+		// Trucks on the road from a cargo station to another cargo station, and pending truck legs between stations,
+		// each checked against bulk freight optimisation's line lookup. Shows whether trucks seen between stations are
+		// returning home, old bookings, or pairs a cargo line connects (which the swap should have moved).
+		private void LogStationToStationTrucks()
+		{
+			RailFreightRerouteSystem reroute = World.GetExistingSystemManaged<RailFreightRerouteSystem>();
+			NativeArray<Entity> stations = m_CargoStationQuery.ToEntityArray(Allocator.Temp);
+			Dictionary<string, int> trucks = new Dictionary<string, int>();
+			Dictionary<string, int> legs = new Dictionary<string, int>();
+			List<string> samples = new List<string>();
+			Dictionary<string, int> currentLegs = new Dictionary<string, int>();
+			List<string> newLegs = new List<string>();
+			try
+			{
+				for (int i = 0; i < stations.Length; i++)
+				{
+					Entity station = stations[i];
+					if (EntityManager.HasBuffer<OwnedVehicle>(station))
+					{
+						DynamicBuffer<OwnedVehicle> vehicles = EntityManager.GetBuffer<OwnedVehicle>(station, true);
+						for (int v = 0; v < vehicles.Length; v++)
+						{
+							Entity vehicle = vehicles[v].m_Vehicle;
+							if (!EntityManager.HasComponent<Game.Vehicles.DeliveryTruck>(vehicle) || !EntityManager.HasComponent<Target>(vehicle))
+							{
+								continue;
+							}
+
+							Entity target = EntityManager.GetComponentData<Target>(vehicle).m_Target;
+							if (!IsCargoStation(target))
+							{
+								continue;
+							}
+
+							Game.Vehicles.DeliveryTruck truck = EntityManager.GetComponentData<Game.Vehicles.DeliveryTruck>(vehicle);
+							string state = (truck.m_State & DeliveryTruckFlags.Returning) != 0 ? "returning"
+								: ((truck.m_State & DeliveryTruckFlags.Loaded) != 0 ? "loaded" : "empty");
+							string connected = reroute != null && reroute.IsConnected(station, target) ? "lineConnected" : "noLine";
+							string key = state + "/" + connected;
+							trucks.TryGetValue(key, out int count);
+							trucks[key] = count + 1;
+							if (state == "loaded" && connected == "lineConnected" && samples.Count < 10)
+							{
+								samples.Add($"truck {PrefabName(station)}#{station.Index} -> {PrefabName(target)}#{target.Index} {truck.m_Resource} {truck.m_Amount}");
+							}
+						}
+					}
+
+					if (EntityManager.HasBuffer<StorageTransferRequest>(station))
+					{
+						DynamicBuffer<StorageTransferRequest> requests = EntityManager.GetBuffer<StorageTransferRequest>(station, true);
+						for (int r = 0; r < requests.Length; r++)
+						{
+							StorageTransferRequest request = requests[r];
+							if ((request.m_Flags & StorageTransferFlags.Incoming) != 0 || (request.m_Flags & StorageTransferFlags.Car) == 0 || !IsCargoStation(request.m_Target))
+							{
+								continue;
+							}
+
+							string connected = reroute != null && reroute.IsConnected(station, request.m_Target) ? "lineConnected" : "noLine";
+							legs.TryGetValue(connected, out int count);
+							legs[connected] = count + 1;
+							if (connected == "lineConnected")
+							{
+								string legKey = station.Index + ">" + request.m_Target.Index + ":" + request.m_Resource;
+								currentLegs[legKey] = request.m_Amount;
+								if (m_PreviousLegs != null && (!m_PreviousLegs.TryGetValue(legKey, out int before) || request.m_Amount > before))
+								{
+									newLegs.Add($"{PrefabName(station)}#{station.Index} -> {PrefabName(request.m_Target)}#{request.m_Target.Index} {request.m_Resource} {request.m_Amount}" + (m_PreviousLegs.TryGetValue(legKey, out int old) ? $" (was {old})" : " (new)"));
+								}
+							}
+							if (connected == "lineConnected" && samples.Count < 20)
+							{
+								samples.Add($"leg {PrefabName(station)}#{station.Index} -> {PrefabName(request.m_Target)}#{request.m_Target.Index} {request.m_Resource} {request.m_Amount} flags={request.m_Flags}");
+							}
+						}
+					}
+				}
+			}
+			finally
+			{
+				stations.Dispose();
+			}
+
+			StringBuilder sb = new StringBuilder("[Diag] StationTrucks trucksToStations: ");
+			foreach (KeyValuePair<string, int> group in trucks)
+			{
+				sb.Append(group.Key).Append('=').Append(group.Value).Append(' ');
+			}
+
+			sb.Append("| pendingTruckLegsToStations: ");
+			foreach (KeyValuePair<string, int> group in legs)
+			{
+				sb.Append(group.Key).Append('=').Append(group.Value).Append(' ');
+			}
+
+			Mod.log.Info(sb.ToString());
+			foreach (string sample in samples)
+			{
+				Mod.log.Info("[Diag] StationTruck " + sample);
+			}
+
+			if (m_PreviousLegs != null)
+			{
+				Mod.log.Info($"[Diag] NewTruckLegs since last snapshot: {newLegs.Count}");
+				for (int n = 0; n < math.min(newLegs.Count, 15); n++)
+				{
+					Mod.log.Info("[Diag] NewTruckLeg " + newLegs[n]);
+				}
+			}
+
+			m_PreviousLegs = currentLegs;
+		}
+
+		private Dictionary<string, int> m_PreviousLegs;
+
+		private bool IsCargoStation(Entity entity)
+		{
+			return entity != Entity.Null && EntityManager.Exists(entity) &&
+				EntityManager.HasComponent<Game.Buildings.CargoTransportStation>(entity) &&
+				!EntityManager.HasComponent<Game.Objects.OutsideConnection>(entity);
 		}
 
 		private string TargetKind(Entity target)

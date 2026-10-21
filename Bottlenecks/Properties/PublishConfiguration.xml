@@ -100,7 +100,7 @@ Find them under **Options - Bottlenecks**.
 	<!--Link to the forum post where the mod can be discussed-->
 	<ForumLink Value="https://forum.paradoxplaza.com/forum/threads/bottlenecks-a-cs2-mod-for-jammed-rail-and-cargo-networks-fixes-issues-with-post-services.1945897/" />
 	<!--Version of the mod-->
-	<ModVersion Value="1.1.0" />
+	<ModVersion Value="1.1.1" />
 	<!--Recommended version of the base game to use the mod-->
 	<GameVersion Value="1.6.*" />
 	<!--Dependency for the mod, can be set multiple times-->
@@ -109,9 +109,8 @@ Find them under **Options - Bottlenecks**.
 	<RequiredDLC Value="" />
 	<!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
 	<ChangeLog>
-- New setting: Bulk freight optimisation (off by default). Cargo between two cargo stations, harbors or cargo airports goes by the cargo line that connects them (train, ship or airplane) instead of by truck, which frees up the stations' trucks for companies, warehouses and container yards.
-- Reset cargo transfers now works right away, also while the game is paused in the options, and offers to turn on bulk freight optimisation if it is off.
-- The cargo station hover texts mention bulk freight optimisation.
+- Fix: bulk freight optimisation missed part of the planned routes, so some cargo between connected stations still went by truck.
+- If you used 1.1.0, "Reset cargo transfers" re-plans the trips that were already booked by truck.
 	</ChangeLog>
 	<!--External link, can be set multiple times. supported types are "discord", "github", "youtube", "twitch", "x", "paypal", "patreon", "buymeacoffee", "kofi", "crowdin", "gitlab", "gofundme"-->
 	<ExternalLink Type="github" Url="https://github.com/KDanielK/Bottlenecks-CS2-mod" />

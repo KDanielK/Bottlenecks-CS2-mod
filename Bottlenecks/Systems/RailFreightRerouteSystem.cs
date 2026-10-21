@@ -90,10 +90,9 @@ namespace Bottlenecks.Systems
 				ComponentType.Exclude<Temp>());
 		}
 
-		// Same interval as StorageTransferSystem and no own offset: the update system then gives this system (registered
-		// UpdateBefore it) the same frame, so every finished route is seen once, just before it is consumed.
-		public override int GetUpdateInterval(SystemUpdatePhase phase) => 16;
-
+		// Runs every frame on purpose. With an update interval of 16 (like StorageTransferSystem) about 10-30% of the
+		// finished routes were consumed before this system saw them (1.1.0), so their truck hops stayed. The per-frame
+		// cost is one query over the storage buildings with a route search in progress; each route is processed once.
 		[Preserve]
 		protected override void OnUpdate()
 		{

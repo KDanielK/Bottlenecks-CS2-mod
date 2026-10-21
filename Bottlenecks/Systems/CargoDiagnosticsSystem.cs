@@ -56,6 +56,7 @@ namespace Bottlenecks.Systems
 			PrefabSystem prefabSystem = World.GetOrCreateSystemManaged<PrefabSystem>();
 			LogCargoStations(prefabSystem);
 			LogTransferDestinations();
+			LogQueuedTripTargets();
 			LogCargoLineSpeeds(prefabSystem);
 			LogResourceBuyers();
 		}
@@ -165,6 +166,49 @@ namespace Bottlenecks.Systems
 			foreach (KeyValuePair<string, long[]> group in sorted)
 			{
 				sb.Append(group.Key).Append('=').Append(group.Value[0]).Append(" (").Append((group.Value[1] / 1e6f).ToString("0.0")).Append("M); ");
+			}
+
+			Mod.log.Info(sb.ToString());
+		}
+
+		// Where do the trips already queued at the stations (TripNeeded, served in order by the station's trucks) go?
+		// Station-to-station storage transfers in this queue were booked as truck legs before; with bulk freight
+		// optimisation on, new ones should only appear where no cargo line connects the two.
+		private void LogQueuedTripTargets()
+		{
+			NativeArray<Entity> stations = m_CargoStationQuery.ToEntityArray(Allocator.Temp);
+			Dictionary<string, int> groups = new Dictionary<string, int>();
+			int total = 0;
+			try
+			{
+				for (int i = 0; i < stations.Length; i++)
+				{
+					if (!EntityManager.HasBuffer<TripNeeded>(stations[i]))
+					{
+						continue;
+					}
+
+					DynamicBuffer<TripNeeded> trips = EntityManager.GetBuffer<TripNeeded>(stations[i], true);
+					for (int t = 0; t < trips.Length; t++)
+					{
+						string key = trips[t].m_Purpose + " -> " + TargetKind(trips[t].m_TargetAgent);
+						groups.TryGetValue(key, out int count);
+						groups[key] = count + 1;
+						total++;
+					}
+				}
+			}
+			finally
+			{
+				stations.Dispose();
+			}
+
+			List<KeyValuePair<string, int>> sorted = new List<KeyValuePair<string, int>>(groups);
+			sorted.Sort((a, b) => b.Value.CompareTo(a.Value));
+			StringBuilder sb = new StringBuilder($"[Diag] QueuedTrips total={total}: ");
+			foreach (KeyValuePair<string, int> group in sorted)
+			{
+				sb.Append(group.Key).Append('=').Append(group.Value).Append("; ");
 			}
 
 			Mod.log.Info(sb.ToString());

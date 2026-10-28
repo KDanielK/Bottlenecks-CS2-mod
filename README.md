@@ -26,6 +26,15 @@ Some deadlocks are left to the game, as in vanilla: a train blocked by a parked 
 
 Hover any icon in the building's info panel for an explanation.
 
+## Does it change the game? Is it safe to remove?
+
+Bottlenecks does not change how the game plans routes: pathfinding, route costs and signals stay vanilla. Most of the mod only observes and shows icons. Only these parts change what happens in the city:
+- **Bulk freight optimisation** (off by default): after the game has planned a storage transfer route, the truck stretch between two cargo stations that a cargo line connects is replaced by that line's segments, the same way the game writes a train ride. The game then books the transfer with its own code (`StorageTransferSystem`).
+- **Hold deadlocked trains** (on by default): keeps trains the game would despawn.
+- **Reset cargo transfers**: only when you press the button.
+
+Safe to remove: apart from its warning icons the mod stores nothing in the save. Transfers booked while it ran are normal game transfers and continue; held trains become ordinary trains again.
+
 ## Reporting bugs
 
 Please post in the forum thread or open an issue. Describe what you saw and, if possible, attach the mod's log file:

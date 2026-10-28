@@ -14,6 +14,18 @@ Cities: Skylines II hides some of its worst logistics problems. Trains that bloc
 
 **Bottlenecks makes these problems visible and helps you fix them.** It finds deadlocked trains and lets you decide what happens next: hold them on the track while you repair the layout, pause the game the moment a deadlock forms, or let the game despawn them and mark the spot. It also flags overloaded cargo stations and can clear a jammed cargo network with one click.
 
+## Does it change the game? Is it safe to remove?
+
+**Bottlenecks does not change how the game plans routes.** Pathfinding, route costs, signals and the way vehicles choose their way all stay vanilla. Most of the mod only watches and shows icons and notifications.
+
+Only these parts change what happens in your city, and each one is your choice:
+
+- **Bulk freight optimisation** (off by default). When the game has planned a cargo route, it moves the stretch between two cargo stations from a truck to the cargo line that connects them, written the same way the game itself writes a train ride. The game then books and carries out the transfer with its own vanilla code. Nothing else about the route, the goods or the economy is touched.
+- **Hold deadlocked trains** (on by default). Keeps trains on the track that the game would otherwise despawn. Turn it off and the game removes them as usual.
+- **Reset cargo transfers.** Only runs when you press the button.
+
+**Safe to remove.** Apart from its warning icons, the mod stores nothing in your save. Transfers that were booked while it ran are normal game transfers and simply continue after you remove it, and from then on the game plans routes the vanilla way again. Held trains become ordinary trains again; if they are still stuck, the game despawns them as it normally would.
+
 ## Why it matters
 
 Every despawned train costs your city something, without the game telling you:
@@ -84,9 +96,8 @@ Find them under **Options - Bottlenecks**.
 
 - Works for trains, cargo trains, trams and subways. They all share the same rail simulation. Testing so far has mainly been done with trains.
 - With holding enabled, a deadlock does not clear by itself. Trains behind it will queue until you fix the track.
-- The mod does not change signals or pathfinding. Apart from holding deadlocked trains, the reset you start yourself and bulk freight optimisation (off by default), it only observes and shows icons.
 - Bulk freight optimisation only changes which vehicle carries cargo between two stations that a cargo line connects. Container yards and other buildings without a cargo line are still served by truck.
-- Safe to add to or remove from an existing save.
+- Safe to add to or remove from an existing save (see "Does it change the game?" above).
 	</LongDescription>
 	<!--Thumbnail-->
 	<Thumbnail Value="Properties/Thumbnail.png" />
